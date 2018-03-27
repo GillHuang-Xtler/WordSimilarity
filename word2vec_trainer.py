@@ -889,9 +889,7 @@ def ROC():
 
     baseskip_med_pos = get_similarity_score_from_file(path = 'data/baseline score/med_7666_similarity_score_baseskip_positive.txt')
     baseskip_all_neg = get_similarity_score_from_file(path = 'data/baseline score/not_only_med_50000_similarity_score_baseskip_nagative.txt')
-    baseskip_med_pos.sort()
-    # for i in baseskip_med_pos:
-    #     print(i)
+    # baseskip_med_pos.sort()
 
     glove_med_pos = get_similarity_score_from_file(path = 'data/baseline score/GloVe_pos.txt')
     glove_med_neg = get_similarity_score_from_file(path='data/baseline score/GloVe_neg.txt')
@@ -899,7 +897,7 @@ def ROC():
 
     data_med_skip_pos_with_features = cal_and_get_data_res_for_medical(feature_select=(0,6),if_skip=1)
     data_med_skip_neg_with_features = cal_and_get_data_res_for_medical_negative(feature_select=(0,6),if_all_model= 1,if_skip=1)
-
+    data_med_skip_neg_with_features = data_med_skip_neg_with_features[:7666]
 
     data_med_pos = cal_and_get_data_res_for_medical()
     data_med_neg = cal_and_get_data_res_for_medical_negative(if_all_model= 1)
@@ -910,6 +908,7 @@ def ROC():
     data_med_pos_baidu = cal_and_get_data_res_for_medical(feature_select=(3,6))
     data_all_model_neg_baidu = cal_and_get_data_res_for_medical_negative(if_all_model= 1, feature_select=(3,6))
 
+
     import numpy as np
     import sklearn.metrics as m
     import pylab as pl
@@ -917,13 +916,13 @@ def ROC():
 
     content = []
 
-    THREASHOLD = 0.85
+    THREASHOLD = 0.43
     while THREASHOLD <= 1:
         THREASHOLD += 0.01
         content += str(THREASHOLD),
 
         # for baseline
-        thr = 7666 * 2
+        thr = 7666
         y_true_base = [1] * 7666 + [0] * thr
         y_pred_base = baseline_med_pos + random.sample(baseline_all_model_neg[:3000], 200) + random.sample(baseline_all_model_neg[33000:], thr-200)
         y_cls_base = np.array([ 1 if i >= THREASHOLD else 0 for i in y_pred_base ], dtype=np.float32)
@@ -932,7 +931,7 @@ def ROC():
         content += m.classification_report(y_true_base, y_cls_base, digits= 10),
 
         # for baseskip
-        thr = 7666 * 2
+        thr = 7666
         y_true_skip = [1] * 7666 + [0] * thr
         y_pred_skip = baseskip_med_pos + random.sample(baseskip_all_neg[:3000], 200) + random.sample(baseskip_all_neg[33000:], thr - 200)
         # y_pred_skip = baseskip_med_pos + random.sample(baseskip_all_neg[:], thr)# + random.sample(baseskip_all_neg[33000:], thr - 200)
@@ -943,17 +942,15 @@ def ROC():
 
 
         # for baseskip with features
-        thr = 7666 * 2
+        thr = 7666
         y_true_skip_with_features = [1] * 7666 + [0] * thr
         # y_pred_skip_with_features = data_med_skip_pos_with_features + random.sample(data_med_skip_neg_with_features[:], thr)# + random.sample(baseskip_all_neg[33000:], thr - 200)
         # y_pred_skip_with_features = data_med_skip_pos_with_features + random.sample(data_med_skip_neg_with_features[30000:48000], thr) #+ random.sample(baseskip_all_neg[:], thr - 10000)
         y_pred_skip_with_features = data_med_skip_pos_with_features + random.sample(data_med_skip_neg_with_features, thr)
-        y_pred_skip_with_features = [0.6 + i for i in y_pred_skip_with_features]
         y_cls_skip_with_features = np.array([1 if i >= THREASHOLD else 0 for i in y_pred_skip_with_features], dtype=np.float32)
         print('baseskip_with_features')
         print m.classification_report(y_true_skip_with_features, y_cls_skip_with_features, digits=5)
         content += m.classification_report(y_true_skip_with_features, y_cls_skip_with_features, digits=10),
-
 
         # for MedSim
         y_true = [1] * 7666 + [0] * thr
@@ -969,8 +966,8 @@ def ROC():
 
         # for glove
         thr_glove = 7258
-        y_true_glove = [1] * thr_glove + [0] * thr_glove * 2
-        y_pred_glove = glove_med_pos + random.sample(glove_med_neg[:150000], 5000)+ random.sample(glove_med_neg[150000:],thr_glove * 2 - 5000)
+        y_true_glove = [1] * thr_glove + [0] * thr_glove
+        y_pred_glove = glove_med_pos + random.sample(glove_med_neg[:150000], 5000)+ random.sample(glove_med_neg[150000:],thr_glove - 5000)
         # y_pred_glove = glove_med_pos + glove_all_model_neg[-thr:]
         y_cls_glove = np.array([ 1 if i >= THREASHOLD else 0 for i in y_pred_glove ], dtype=np.float32)
         print('\n\n GloVe')
@@ -1013,10 +1010,10 @@ def ROC():
         ax.plot(fpr_skip, tpr_skip, color = 'yellow',label='word2vecSkipGram',marker = 's', markevery = 200)
         ax.plot(fpr_skip_with_features, tpr_skip_with_features, color = 'pink',label='word2vecSkipGram_with_features',marker = 's', markevery = 200)
 
-        # ax.set_xlim([0.0, 0.6])
-        # ax.set_ylim([0.4, 1.0])
-        ax.set_xlim([0.0, 1.0])
-        ax.set_ylim([0.0, 1.0])
+        ax.set_xlim([0.0, 0.6])
+        ax.set_ylim([0.4, 1.0])
+        # ax.set_xlim([0.0, 1.0])
+        # ax.set_ylim([0.0, 1.0])
         ax.grid(True)
         # ax.set_title('ROC curve, Thresh = %s.png' % (THREASHOLD))
         pl.xlabel('FP rate')
@@ -1041,10 +1038,10 @@ def ROC():
         ax.plot(recall, precision, color = 'red',label='MedSim',marker = 'o', markevery = 800)
         ax.plot(recall_skip, precision_skip, color = 'yellow',label='word2vecSkipGram',marker = 's', markevery = 800)
         ax.plot(recall_skip_with_features, precision_skip_with_features, color = 'pink',label='word2vecSkipGram_with_features',marker = 's', markevery = 800)
-        # ax.set_xlim([0.4, 1.0])
-        # ax.set_ylim([0.4, 1.0])
-        ax.set_xlim([0.0, 1.0])
-        ax.set_ylim([0.0, 1.0])
+        ax.set_xlim([0.4, 1.0])
+        ax.set_ylim([0.4, 1.0])
+        # ax.set_xlim([0.0, 1.0])
+        # ax.set_ylim([0.0, 1.0])
         ax.grid(True)
         pl.xlabel('Precision')
         pl.ylabel('Recall')
@@ -1062,10 +1059,24 @@ def ROC_test():
 
     baseskip_med_pos = get_similarity_score_from_file(path = 'data/baseline score/med_7666_similarity_score_baseskip_positive.txt')
     baseskip_all_neg = get_similarity_score_from_file(path = 'data/baseline score/not_only_med_50000_similarity_score_baseskip_nagative.txt')
-    baseskip_med_pos.sort()
-    # for i in baseskip_med_pos:
-    #     print(i)
 
+    baseline_med_pos = get_similarity_score_from_file(path = 'data/baseline score/med_7666_similarity_score_baseline_positive.txt')
+    baseline_all_model_neg = get_similarity_score_from_file(path = 'data/baseline score/not_only_med_50000_similarity_score_baseline_negative.txt')
+
+    glove_med_pos = get_similarity_score_from_file(path = 'data/baseline score/GloVe_pos.txt')
+    glove_med_neg = get_similarity_score_from_file(path='data/baseline score/GloVe_neg.txt')
+
+    data_med_skip_pos_with_features = cal_and_get_data_res_for_medical(feature_select=(0,6),if_skip=1)
+    data_med_skip_neg_with_features = cal_and_get_data_res_for_medical_negative(feature_select=(0,6),if_all_model= 1,if_skip=1)
+
+    data_med_pos_rulebased = cal_and_get_data_res_for_medical(feature_select=(0,3))
+    data_all_model_neg_rulebased = cal_and_get_data_res_for_medical_negative(if_all_model= 1, feature_select=(0,3))
+
+    data_med_pos_baidu = cal_and_get_data_res_for_medical(feature_select=(3,6))
+    data_all_model_neg_baidu = cal_and_get_data_res_for_medical_negative(if_all_model= 1, feature_select=(3,6))
+
+    data_med_pos = cal_and_get_data_res_for_medical()
+    data_med_neg = cal_and_get_data_res_for_medical_negative(if_all_model=1)
     import numpy as np
     import sklearn.metrics as m
     import pylab as pl
@@ -1074,14 +1085,14 @@ def ROC_test():
     content = []
 
     THREASHOLD = 0.43
-    while THREASHOLD <= 1:
-        THREASHOLD += 0.01
-        content += str(THREASHOLD),
+    content += str(THREASHOLD),
+    range = [1,2,3,4,5]
 
+    for scale in range[:]:
+        thr = scale * 7666;
         # for baseskip
-        thr = 7666 * 2
         y_true_skip = [1] * 7666 + [0] * thr
-        y_pred_skip = baseskip_med_pos + random.sample(baseskip_all_neg[:3000], 200) + random.sample(baseskip_all_neg[33000:], thr - 200)
+        # y_pred_skip = baseskip_med_pos + random.sample(baseskip_all_neg[:3000], 200) + random.sample(baseskip_all_neg[33000:], thr - 200)
         y_pred_skip = baseskip_med_pos + baseskip_all_neg[-thr:]#random.sample(baseskip_all_neg[:3000], 200) + random.sample(baseskip_all_neg[33000:], thr - 200)
         # y_pred_skip = baseskip_med_pos + random.sample(baseskip_all_neg[:], thr)# + random.sample(baseskip_all_neg[33000:], thr - 200)
         y_cls_skip = np.array([1 if i >= THREASHOLD else 0 for i in y_pred_skip], dtype=np.float32)
@@ -1089,44 +1100,101 @@ def ROC_test():
         print m.classification_report(y_true_skip, y_cls_skip, digits=5)
         content += m.classification_report(y_true_skip, y_cls_skip, digits=10),
 
+        # for baseskip with features
+        y_true_skip_with_features = [1] * 7666 + [0] * thr
+        # y_pred_skip_with_features = data_med_skip_pos_with_features + random.sample(data_med_skip_neg_with_features[:], thr)# + random.sample(baseskip_all_neg[33000:], thr - 200)
+        # y_pred_skip_with_features = data_med_skip_pos_with_features + random.sample(data_med_skip_neg_with_features[30000:48000], thr) #+ random.sample(baseskip_all_neg[:], thr - 10000)
+        y_pred_skip_with_features = data_med_skip_pos_with_features + random.sample(data_med_skip_neg_with_features, thr)
+        # y_pred_skip_with_features = [0.6 + i for i in y_pred_skip_with_features]
+        y_cls_skip_with_features = np.array([1 if i >= THREASHOLD else 0 for i in y_pred_skip_with_features], dtype=np.float32)
+        print('baseskip_with_features')
+        print m.classification_report(y_true_skip_with_features, y_cls_skip_with_features, digits=5)
+        content += m.classification_report(y_true_skip_with_features, y_cls_skip_with_features, digits=10),
 
-        # fpr_skip, tpr_skip, th_skip = m.roc_curve(y_true_skip,y_pred_skip)
-        # ax = pl.subplot(1, 1, 1)
-        # ax.plot(fpr_skip, tpr_skip, color = 'b',label='word2vecSkipGram',marker = 's', markevery = 200)
-        #
-        # # ax.set_xlim([0.0, 0.6])
-        # # ax.set_ylim([0.4, 1.0])
+
+        # for baseline
+        thr = 7666
+        y_true_base = [1] * 7666 + [0] * thr
+        y_pred_base = baseline_med_pos + random.sample(baseline_all_model_neg[:3000], 200) + random.sample(baseline_all_model_neg[33000:], thr-200)
+        y_cls_base = np.array([ 1 if i >= THREASHOLD else 0 for i in y_pred_base ], dtype=np.float32)
+        print('baseline')
+        print m.classification_report(y_true_base, y_cls_base, digits= 5)
+        content += m.classification_report(y_true_base, y_cls_base, digits= 10),
+
+        # for MedSim
+        y_true = [1] * 7666 + [0] * thr
+        y_pred = data_med_pos + random.sample(data_med_neg, thr)
+        # y_pred = data_med_pos + data_all_model_neg[-thr:]
+        # print y_true
+        # print y_pred
+        y_cls = np.array([ 1 if i >= THREASHOLD else 0 for i in y_pred ], dtype=np.float32)
+        print('\n\n MedSim')
+        print m.classification_report(y_true, y_cls, digits=5)
+        content += m.classification_report(y_true, y_cls, digits=10),
+        # content += str(m.f1_score(y_true, y_cls)),
+
+        # for glove
+        thr_glove = 7258
+        y_true_glove = [1] * thr_glove + [0] * thr_glove
+        y_pred_glove = glove_med_pos + random.sample(glove_med_neg[:150000], 5000)+ random.sample(glove_med_neg[150000:],thr_glove - 5000)
+        # y_pred_glove = glove_med_pos + glove_all_model_neg[-thr:]
+        y_cls_glove = np.array([ 1 if i >= THREASHOLD else 0 for i in y_pred_glove ], dtype=np.float32)
+        print('\n\n GloVe')
+        print m.classification_report(y_true_glove,y_cls_glove,digits=5)
+
+        # for rulebased
+        # 给rulebased，只要前三个特征的
+        y_true_rulebased = [1] * 7666 + [0] * thr
+        y_pred_rulebased = data_med_pos_rulebased + random.sample(data_all_model_neg_rulebased, thr)
+        # y_pred_rulebased = data_med_pos_rulebased + data_all_model_neg_rulebased[:-5000][-thr:]
+        y_cls_rulebased = np.array([ 1 if i >= THREASHOLD else 0 for i in y_pred_rulebased ], dtype=np.float32)
+        print('\n\n rule')
+        print m.classification_report(y_true_rulebased, y_cls_rulebased, digits= 5)
+        content += m.classification_report(y_true_rulebased, y_cls_rulebased, digits= 10),
+
+        # for baidu
+        # 给百度的，只要后三个特征的
+        y_true_baidu = [1] * 7666 + [0] * thr
+        y_pred_baidu = data_med_pos_baidu + random.sample(data_all_model_neg_baidu, thr)
+        # y_pred_baidu = data_med_pos_baidu + data_all_model_neg_baidu[:-5000][-thr:]
+        y_cls_baidu = np.array([ 1 if i >= THREASHOLD else 0 for i in y_pred_baidu ], dtype=np.float32)
+        print('\n\n baidu')
+        print m.classification_report(y_true_baidu, y_cls_baidu, digits= 5)
+        content += m.classification_report(y_true_baidu, y_cls_baidu, digits= 10),
+
+        precision_base, recall_base, th_base = m.precision_recall_curve(y_true_base, y_pred_base)
+        precision, recall, th = m.precision_recall_curve(y_true, y_pred)
+        precision_glove, recall_glove, th_glove = m.precision_recall_curve(y_true_glove, y_pred_glove)
+        precision_rulebased, recall_rulebased, th_rulebased = m.precision_recall_curve(y_true_rulebased,
+                                                                                       y_pred_rulebased)
+        precision_baidu, recall_baidu, th_baidu = m.precision_recall_curve(y_true_baidu, y_pred_baidu)
+        precision_skip, recall_skip, th_skip = m.precision_recall_curve(y_true_skip, y_pred_skip)
+        precision_skip_with_features, recall_skip_with_features, th_skip_with_features = m.precision_recall_curve(
+            y_true_skip_with_features, y_pred_skip_with_features)
+        ax = pl.subplot(1, 1, 1)
+        ax.plot(recall_glove, precision_glove, color='deepskyblue', label='GloVe', marker='v', markevery=800)
+        ax.plot(recall_base, precision_base, color='blue', label='word2vecCBOW', marker='d', markevery=(0, 800))
+        ax.plot(recall_rulebased, precision_rulebased, color='darkgreen', label='word2vec+rule', marker='*',
+                markevery=800)
+        ax.plot(recall_baidu, precision_baidu, color='peru', label='word2vec+topic', marker='d', markevery=800)
+        ax.plot(recall, precision, color='red', label='MedSim', marker='o', markevery=800)
+        ax.plot(recall_skip, precision_skip, color='yellow', label='word2vecSkipGram', marker='s', markevery=800)
+        ax.plot(recall_skip_with_features, precision_skip_with_features, color='pink',
+                label='word2vecSkipGram_with_features', marker='s', markevery=800)
+        ax.set_xlim([0.4, 1.0])
+        ax.set_ylim([0.4, 1.0])
         # ax.set_xlim([0.0, 1.0])
         # ax.set_ylim([0.0, 1.0])
-        # ax.grid(True)
-        # # ax.set_title('ROC curve, Thresh = %s.png' % (THREASHOLD))
-        # pl.xlabel('FP rate')
-        # pl.ylabel('TP rate')
-        # pl.legend(loc="lower right")
-        # pl.savefig('imgs/ROC curve, Thresh = %s.png' % (THREASHOLD))
-        # # pl.show()
-        # pl.clf()
-
-        precision_skip , recall_skip, th_skip = m.precision_recall_curve(y_true_skip,y_pred_skip)
-        ax = pl.subplot(1, 1, 1)
-        ax.plot(recall_skip, precision_skip, color = 'b',label='word2vecSkipGram',marker = 's', markevery = 800)
-        # ax.set_xlim([0.4, 1.0])
-        # ax.set_ylim([0.4, 1.0])
-        ax.set_xlim([0.0, 1.0])
-        ax.set_ylim([0.0, 1.0])
         ax.grid(True)
         pl.xlabel('Precision')
         pl.ylabel('Recall')
         # ax.set_title('Precision recall curve, Thresh = %s.png' % (THREASHOLD))
         pl.legend(loc="lower left")
-        pl.savefig('imgs/Precision recall curve,  Thresh = %s.png' % (THREASHOLD))
+        pl.savefig('imgs/Precision recall curve, scale = %d.png' % (scale))
 
         # pl.show()
         pl.clf()
         content += '\n\n'
-        # break
-
-
 
 def get_model_from_txt_and_cal_similarity(path = ''):
     from gensim.models import KeyedVectors
@@ -1187,10 +1255,6 @@ def get_model_from_txt_and_cal_similarity(path = ''):
     score_neg = [str(i) for i in score_neg]
     write_file('data/baseline score/not_only_med_50000_similarity_score_baseskip_nagative.txt', score_neg)
 
-
-
-
-
 # get_model_from_txt_and_cal_similarity()
     # filename_med_neg = 'data/neg_syns/med_negative_100w.txt'
     # f = open(filename_med_neg, 'r')
@@ -1250,8 +1314,8 @@ def get_model_from_txt_and_cal_similarity(path = ''):
 # cal_and_draw_curve_with_other_features_for_medical_negative(if_all_model= 1)
 
 
-ROC()
-# ROC_test()
+# ROC()
+ROC_test()
 
 # cal_correlations()
 
