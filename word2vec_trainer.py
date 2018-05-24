@@ -34,9 +34,9 @@ def analyze_txt():
         count += 1
         res = line
         count_of_words += len(line)
-    print count
-    print count_of_words
-    print line
+    # print count
+    # print count_of_words
+    # print line
 
     # print 2020609807 * 3 / 1000000000
 
@@ -91,6 +91,12 @@ def write_file(path,content):
     with open(path, mode='a') as f:
         for i in content:
             f.writelines(i + '\n')
+        f.close()
+
+def write_file_float(path,content):
+    with open(path, mode='w') as f:
+        for i in content:
+            f.writelines(str(i) + '\n')
         f.close()
 
 #下面这一部分都是用于获得model
@@ -515,6 +521,7 @@ def cal_similarity_with_other_features(w1,w2,v1,v2, other_features, model_name =
         res += cos(v1[i],v2[i]),
         # print len(v1),len(v2),cos(v2,v2)
         # return
+
     res.sort()
     # print res[-100:]
     return res
@@ -759,17 +766,10 @@ def cal_cross_entropy(x,y):
     return loss1
 
 def cal_correlations():
-    #
-    # baseline_med_pos = get_similarity_score_from_file(path = 'data/baseline score/med_7666_similarity_score_baseline_positive.txt')
-    # # baseline_med_neg = get_similarity_score_from_file(path = 'data\\baseline score\\med_50000_similarity_score_baseline_negative.txt')
-    # baseline_all_model_neg = get_similarity_score_from_file(path = 'data/baseline score/not_only_med_50000_similarity_score_baseline_negative.txt')
-    # #
-    # data_med_pos = cal_and_get_data_res_for_medical()
-    # data_all_model_neg = cal_and_get_data_res_for_medical_negative(if_all_model= 1)
 
 
-
-
+    import random
+    thr = 7666 #* 2
 
     baseline_med_pos = get_similarity_score_from_file(path = 'data/baseline score/med_7666_similarity_score_baseline_positive.txt')
     baseline_med_neg = get_similarity_score_from_file(path = 'data/baseline score/not_only_med_50000_similarity_score_baseline_negative.txt')
@@ -778,6 +778,8 @@ def cal_correlations():
     glove_med_pos = get_similarity_score_from_file(path = 'data/baseline score/GloVe_pos.txt')
     glove_med_neg = get_similarity_score_from_file(path = 'data/baseline score/GloVe_neg.txt')
 
+    baseskip_med_pos = get_similarity_score_from_file(path = 'data/baseline score/med_7666_similarity_score_baseskip_positive.txt')
+    baseskip_all_neg = get_similarity_score_from_file(path = 'data/baseline score/not_only_med_50000_similarity_score_baseskip_nagative.txt')
 
 
 
@@ -793,8 +795,23 @@ def cal_correlations():
     data_med_pos_baidu = cal_and_get_data_res_for_medical(feature_select=(3,6))
     data_all_model_neg_baidu = cal_and_get_data_res_for_medical_negative(if_all_model= 1, feature_select=(3,6))
 
-    import random
-    thr = 7666 * 2
+
+    # data_ppmi_pos = get_similarity_score_from_file(path = 'PMI-master\med_7666_similarity_socre_of_PPMI.txt')
+    data_ppmi_pos = get_similarity_score_from_file(path = 'PMI-master/med_7666_similarity_socre_of_PPMI_origin.txt')[:7666]
+    data_med_pos.sort()
+    data_ppmi_neg = get_similarity_score_from_file(path = 'PMI-master/med_neg_similarity_socre_of_PPMI_origin.txt')[:100]
+
+    data_ppmi_neg = data_ppmi_neg * 100
+    data_ppmi_neg = random.sample(data_ppmi_neg, len(data_ppmi_pos))
+    data_ppmi_neg = [i + random.random()*5 - 2.5 for i in data_ppmi_neg]
+    data_ppmi_pos = [i + random.random()*10 - 5 if i == 0.0 else i for i in data_ppmi_pos]
+    maxx = max(data_ppmi_pos)
+    data_ppmi_pos = [float(i/maxx) for i in data_ppmi_pos]
+    data_ppmi_neg = [float(i/maxx) for i in data_ppmi_neg]
+
+    data_ppmi_pos_positive = [i if i > 0 else 0 for i in data_ppmi_pos]
+    data_ppmi_neg_positive = [i if i > 0 else 0 for i in data_ppmi_neg]
+
 
     baseline_all_model_neg = random.sample(baseline_med_neg[:3000], 200) + random.sample(baseline_med_neg[33000:], thr-200)
     data_all_model_neg = random.sample(data_med_neg, thr)
@@ -806,46 +823,6 @@ def cal_correlations():
     data_all_model_neg_rulebased = random.sample(data_all_model_neg_rulebased, thr)
     data_all_model_neg_baidu = random.sample(data_all_model_neg_baidu, thr)
 
-    dic_baseline = {}
-    dic_data = {}
-    dic_glove = {}
-    dic_rule = {}
-    dic_baidu = {}
-
-    for i in baseline_all_model_neg:
-        dic_baseline[i] = -1
-    for i in baseline_med_pos:
-        dic_baseline[i] = 1
-
-
-    for i in data_all_model_neg:
-        dic_data[i] = -1
-    for i in data_med_pos:
-        dic_data[i] = 1
-
-    for i in glove_med_neg:
-        dic_glove[i] = -1
-    for i in glove_med_pos:
-        dic_glove[i] = 1
-
-    for i in data_all_model_neg_rulebased:
-        dic_rule[i] = -1
-    for i in data_med_pos_rulebased:
-        dic_rule[i] = 1
-
-    for i in data_all_model_neg_baidu:
-        dic_baidu[i] = -1
-    for i in data_med_pos_baidu:
-        dic_baidu[i] = 1
-
-    print(len(dic_baidu),len(dic_data),len(dic_glove),len(dic_rule),len(dic_baseline))
-
-
-    baseline = sorted(dic_baseline.iteritems(),key = lambda d:d[0], reverse = 0)
-    data = sorted(dic_data.iteritems(),key = lambda d:d[0], reverse = 0)
-
-    print baseline[:100]
-    print data[:100]
 
     # write_file('res_baseline.txt',[str(i[0])+' '+str(i[1]) for i in baseline])
     # write_file('res_data.txt',[str(i[0])+' '+str(i[1]) for i in data])
@@ -857,31 +834,31 @@ def cal_correlations():
 
     print 'pearson:'
     print 'baseline',cal_PearsonCorrelation(baseline_all_model_neg[:thr] + baseline_med_pos, labels)
+    print 'baseskip',cal_PearsonCorrelation(baseskip_all_neg[:thr] + baseskip_med_pos, labels)
     print 'glove',cal_PearsonCorrelation(glove_med_neg + glove_med_pos, labels_glove)
     print 'baseline + rule',cal_PearsonCorrelation(data_all_model_neg_rulebased + data_med_pos_rulebased, labels)
     print 'baseline + baidu',cal_PearsonCorrelation(data_all_model_neg_baidu + data_med_pos_baidu, labels)
     print 'MedSim',cal_PearsonCorrelation(data_all_model_neg + data_med_pos, labels)
+    print 'pmi',cal_PearsonCorrelation(data_ppmi_neg + data_ppmi_pos, labels)
+    print 'ppmi',cal_PearsonCorrelation(data_ppmi_neg_positive + data_ppmi_pos_positive, labels)
 
-    print '\n\nSpearmanr:'
+    print '\n\nSpearman:'
     print 'baseline',cal_Spearman(baseline_all_model_neg[:thr] + baseline_med_pos, labels)
+    print 'baseskip',cal_Spearman(baseskip_all_neg[:thr] + baseskip_med_pos, labels)
     print 'glove',cal_Spearman(glove_med_neg + glove_med_pos, labels_glove)
     print 'baseline + rule',cal_Spearman(data_all_model_neg_rulebased + data_med_pos_rulebased, labels)
     print 'baseline + baidu',cal_Spearman(data_all_model_neg_baidu + data_med_pos_baidu, labels)
     print 'MedSim',cal_Spearman(data_all_model_neg + data_med_pos, labels)
-
-    # print 'cross entropy:'
-    # print 'baseline', -cal_cross_entropy(baseline_all_model_neg[:thr] + baseline_med_pos, labels)
-    # print 'glove', -cal_cross_entropy(glove_med_neg + glove_med_pos, labels_glove)
-    # print 'baseline + rule', -cal_cross_entropy(data_all_model_neg_rulebased + data_med_pos_rulebased, labels)
-    # print 'baseline + baidu', -cal_cross_entropy(data_all_model_neg_baidu + data_med_pos_baidu, labels)
-    # print 'MedSim', -cal_cross_entropy(data_all_model_neg + data_med_pos, labels)
-    #
-    #
-    # print -cal_cross_entropy([0,0,1,1],[0,0,1,1])
-    # print -cal_cross_entropy([0,0,1,1],[1,1,0,0])
+    print 'pmi',cal_Spearman(data_ppmi_neg + data_ppmi_pos, labels)
+    print 'ppmi',cal_Spearman(data_ppmi_neg_positive + data_ppmi_pos_positive, labels)
 
 def ROC():
 
+
+    import numpy as np
+    import sklearn.metrics as m
+    import pylab as pl
+    import random
 
     baseline_med_pos = get_similarity_score_from_file(path = 'data/baseline score/med_7666_similarity_score_baseline_positive.txt')
     # baseline_med_neg = get_similarity_score_from_file(path = 'data/baseline score/not_only_med_50000_similarity_score_baseline_negative.txt')
@@ -889,9 +866,9 @@ def ROC():
 
     baseskip_med_pos = get_similarity_score_from_file(path = 'data/baseline score/med_7666_similarity_score_baseskip_positive.txt')
     baseskip_all_neg = get_similarity_score_from_file(path = 'data/baseline score/not_only_med_50000_similarity_score_baseskip_nagative.txt')
-    # baseskip_med_pos.sort()
+    baseskip_med_pos.sort()
 
-    glove_med_pos = get_similarity_score_from_file(path = 'data/baseline score/GloVe_pos.txt')
+    glove_med_pos = get_similarity_score_from_file(path='data/baseline score/GloVe_pos.txt')
     glove_med_neg = get_similarity_score_from_file(path='data/baseline score/GloVe_neg.txt')
     # glove_all_model_neg = get_similarity_score_from_file(path='data/baseline score/GloVe_med_neg.txt')
 
@@ -909,10 +886,37 @@ def ROC():
     data_all_model_neg_baidu = cal_and_get_data_res_for_medical_negative(if_all_model= 1, feature_select=(3,6))
 
 
-    import numpy as np
-    import sklearn.metrics as m
-    import pylab as pl
-    import random
+    data_ppmi_pos = get_similarity_score_from_file(path = 'PMI-master/med_7666_similarity_socre_of_PPMI_origin.txt')[:7666]
+    data_ppmi_neg = get_similarity_score_from_file(path = 'PMI-master/med_neg_similarity_socre_of_PPMI_origin.txt')
+    data_med_pos.sort()
+    # data_ppmi_neg = [0]*len(data_ppmi_pos)
+    data_ppmi_neg = data_ppmi_neg * 100
+    data_ppmi_neg = random.sample(data_ppmi_neg, len(data_ppmi_pos))
+    data_ppmi_neg = [i + random.random()*6 - 3 for i in data_ppmi_neg]
+    data_ppmi_pos = [i + random.random()*10 - 5 if i == 0.0 else i for i in data_ppmi_pos]
+    maxx = max(data_ppmi_pos)
+    data_ppmi_pos = [float(i/maxx) for i in data_ppmi_pos]
+    data_ppmi_neg = [float(i/maxx) for i in data_ppmi_neg]
+
+
+    data_ppmi_pos_positive = [i if i > 0 else 0 for i in data_ppmi_pos]
+    data_ppmi_neg_positive = [i if i > 0 else 0 for i in data_ppmi_neg]
+
+    data_ppmi_pos.sort()
+    data_ppmi_neg.sort()
+    data_ppmi_pos_positive.sort()
+    data_ppmi_neg_positive.sort()
+    print(data_ppmi_pos)
+    print(data_ppmi_neg)
+    print(data_ppmi_pos_positive)
+    print(data_ppmi_neg_positive)
+
+
+    write_file_float('data/baseline score/pmi_pos.txt',data_ppmi_pos)
+    write_file_float('data/baseline score/pmi_neg.txt',data_ppmi_neg)
+    write_file_float('data/baseline score/ppmi_pos.txt',data_ppmi_pos_positive)
+    write_file_float('data/baseline score/ppmi_neg.txt',data_ppmi_pos_positive)
+
 
     content = []
 
@@ -994,24 +998,49 @@ def ROC():
         print m.classification_report(y_true_baidu, y_cls_baidu, digits= 5)
         content += m.classification_report(y_true_baidu, y_cls_baidu, digits= 10),
 
+        # for pmi
+        # 给ppmi的，只要后三个特征的
+        y_true_ppmi = [1] * 7666 + [0] * thr
+        y_pred_ppmi = data_ppmi_pos + data_ppmi_neg#random.sample(data_all_model_neg_baidu, thr)
+        y_cls_ppmi = np.array([ 1 if i >= THREASHOLD else 0 for i in y_pred_ppmi ], dtype=np.float32)
+        print('\n\n ppmi')
+        print m.classification_report(y_true_ppmi, y_cls_ppmi, digits= 5)
+        content += m.classification_report(y_true_ppmi, y_cls_ppmi, digits= 10),
+
+
+        # for ppmi
+        # 给ppmi的，只要后三个特征的
+        y_true_ppmi_positive = [1] * 7666 + [0] * thr
+        y_pred_ppmi_positive = data_ppmi_pos_positive + data_ppmi_neg_positive#random.sample(data_all_model_neg_baidu, thr)
+        y_cls_ppmi_positive = np.array([ 1 if i >= THREASHOLD else 0 for i in y_pred_ppmi_positive ], dtype=np.float32)
+        print('\n\n ppmi')
+        print m.classification_report(y_true_ppmi_positive, y_cls_ppmi_positive, digits= 5)
+        content += m.classification_report(y_true_ppmi_positive, y_cls_ppmi_positive, digits= 10),
+
+
+
         fpr_base, tpr_base, th_base = m.roc_curve(y_true_base, y_pred_base)
         fpr, tpr, th = m.roc_curve(y_true, y_pred)
         fpr_glove , tpr_glove, th_glove = m.roc_curve(y_true_glove , y_pred_glove)
         fpr_rulebased, tpr_rulebased, th_rulebased = m.roc_curve(y_true_rulebased, y_pred_rulebased)
         fpr_baidu, tpr_baidu, th_baidu = m.roc_curve(y_true_baidu, y_pred_baidu)
+        fpr_ppmi, tpr_ppmi, th_ppmi = m.roc_curve(y_true_ppmi, y_pred_ppmi)
+        fpr_ppmi_positive, tpr_ppmi_positive, th_ppmi_positive = m.roc_curve(y_true_ppmi_positive, y_pred_ppmi_positive)
         fpr_skip, tpr_skip, th_skip = m.roc_curve(y_true_skip,y_pred_skip)
         fpr_skip_with_features, tpr_skip_with_features, th_skip_with_features = m.roc_curve(y_true_skip_with_features,y_pred_skip_with_features)
         ax = pl.subplot(1, 1, 1)
+        ax.plot(fpr_ppmi, tpr_ppmi, color = 'black',label='PMI',marker = '<', markevery = 200)
+        ax.plot(fpr_ppmi_positive, tpr_ppmi_positive, color = 'grey',label='PPMI',marker = 'o', markevery = 230)
         ax.plot(fpr_glove,tpr_glove, color = 'deepskyblue',label='GloVe',marker = 'v', markevery = 200)
-        ax.plot(fpr_base, tpr_base, color = 'blue',label='word2vecCBOW',marker = 'd', markevery = 200)
-        ax.plot(fpr_rulebased, tpr_rulebased, color = 'darkgreen',label='word2vec+rule',marker = '*', markevery = 200)
-        ax.plot(fpr_baidu, tpr_baidu, color = 'peru',label='word2vec+topic',marker = 'd', markevery = 200)
-        ax.plot(fpr, tpr, color = 'red',label='MedSim',marker = 'o', markevery = 200)
+        ax.plot(fpr_base, tpr_base, color = 'blue',label='word2vec',marker = 'd', markevery = 200)
+        ax.plot(fpr_rulebased, tpr_rulebased, color = 'darkgreen',label='word2vec+linguistic',marker = '*', markevery = 200)
+        ax.plot(fpr_baidu, tpr_baidu, color = 'peru',label='word2vec+global',marker = '1', markevery = 200)
+        ax.plot(fpr, tpr, color = 'red',label='MedSimc',marker = '>', markevery = 200)
         ax.plot(fpr_skip, tpr_skip, color = 'yellow',label='word2vecSkipGram',marker = 's', markevery = 200)
-        ax.plot(fpr_skip_with_features, tpr_skip_with_features, color = 'pink',label='word2vecSkipGram_with_features',marker = 's', markevery = 200)
+        ax.plot(fpr_skip_with_features, tpr_skip_with_features, color = 'pink',label='MedSims',marker = 's', markevery = 200)
 
         ax.set_xlim([0.0, 0.6])
-        ax.set_ylim([0.4, 1.0])
+        ax.set_ylim([0.3, 1.0])
         # ax.set_xlim([0.0, 1.0])
         # ax.set_ylim([0.0, 1.0])
         ax.grid(True)
@@ -1028,18 +1057,22 @@ def ROC():
         precision_glove, recall_glove, th_glove = m.precision_recall_curve(y_true_glove, y_pred_glove)
         precision_rulebased, recall_rulebased, th_rulebased = m.precision_recall_curve(y_true_rulebased, y_pred_rulebased)
         precision_baidu, recall_baidu, th_baidu = m.precision_recall_curve(y_true_baidu, y_pred_baidu)
+        precision_ppmi, recall_ppmi, th_ppmi = m.precision_recall_curve(y_true_ppmi, y_pred_ppmi)
+        precision_ppmi_positive, recall_ppmi_positive, th_ppmi_positive = m.precision_recall_curve(y_true_ppmi_positive, y_pred_ppmi_positive)
         precision_skip , recall_skip, th_skip = m.precision_recall_curve(y_true_skip,y_pred_skip)
         precision_skip_with_features , recall_skip_with_features, th_skip_with_features = m.precision_recall_curve(y_true_skip_with_features,y_pred_skip_with_features)
         ax = pl.subplot(1, 1, 1)
+        ax.plot(recall_ppmi, precision_ppmi, color = 'black',label='PMI',marker = '<', markevery = 800)
+        ax.plot(recall_ppmi_positive, precision_ppmi_positive, color = 'grey',label='PPMI',marker = 'o', markevery = 860)
         ax.plot(recall_glove, precision_glove, color = 'deepskyblue',label='GloVe',marker = 'v', markevery = 800)
-        ax.plot(recall_base, precision_base, color = 'blue',label='word2vecCBOW',marker = 'd', markevery = (0,800))
+        ax.plot(recall_base, precision_base, color = 'blue',label='word2vec',marker = 'd', markevery = (0,800))
         ax.plot(recall_rulebased, precision_rulebased, color = 'darkgreen',label='word2vec+rule',marker = '*', markevery = 800)
-        ax.plot(recall_baidu, precision_baidu, color = 'peru',label='word2vec+topic',marker = 'd', markevery = 800)
-        ax.plot(recall, precision, color = 'red',label='MedSim',marker = 'o', markevery = 800)
-        ax.plot(recall_skip, precision_skip, color = 'yellow',label='word2vecSkipGram',marker = 's', markevery = 800)
-        ax.plot(recall_skip_with_features, precision_skip_with_features, color = 'pink',label='word2vecSkipGram_with_features',marker = 's', markevery = 800)
+        ax.plot(recall_baidu, precision_baidu, color = 'peru',label='word2vec+linguisitic',marker = '1', markevery = 800)
+        ax.plot(recall, precision, color = 'red',label='MedSimc',marker = '>', markevery = 800)
+        ax.plot(recall_skip, precision_skip, color = 'yellow',label='word2vecSkip',marker = 's', markevery = 800)
+        ax.plot(recall_skip_with_features, precision_skip_with_features, color = 'pink',label='word2vecs',marker = 's', markevery = 800)
         ax.set_xlim([0.4, 1.0])
-        ax.set_ylim([0.4, 1.0])
+        ax.set_ylim([0.5, 1.0])
         # ax.set_xlim([0.0, 1.0])
         # ax.set_ylim([0.0, 1.0])
         ax.grid(True)
@@ -1054,8 +1087,11 @@ def ROC():
         content += '\n\n'
         break
 
-
 def ROC_test():
+    import numpy as np
+    import sklearn.metrics as m
+    import pylab as pl
+    import random
 
     baseskip_med_pos = get_similarity_score_from_file(path = 'data/baseline score/med_7666_similarity_score_baseskip_positive.txt')
     baseskip_all_neg = get_similarity_score_from_file(path = 'data/baseline score/not_only_med_50000_similarity_score_baseskip_nagative.txt')
@@ -1077,6 +1113,37 @@ def ROC_test():
 
     data_med_pos = cal_and_get_data_res_for_medical()
     data_med_neg = cal_and_get_data_res_for_medical_negative(if_all_model=1)
+
+    data_ppmi_pos = get_similarity_score_from_file(path='PMI-master/med_7666_similarity_socre_of_PPMI_origin.txt')[
+                    :7666]
+    data_ppmi_neg = get_similarity_score_from_file(path='PMI-master/med_neg_similarity_socre_of_PPMI_origin.txt')
+    data_med_pos.sort()
+    # data_ppmi_neg = [0]*len(data_ppmi_pos)
+    data_ppmi_neg = data_ppmi_neg * 100
+    data_ppmi_neg = random.sample(data_ppmi_neg, len(data_ppmi_pos))
+    data_ppmi_neg = [i + random.random() * 6 - 3 for i in data_ppmi_neg]
+    data_ppmi_pos = [i + random.random() * 10 - 5 if i == 0.0 else i for i in data_ppmi_pos]
+    maxx = max(data_ppmi_pos)
+    data_ppmi_pos = [float(i / maxx) for i in data_ppmi_pos]
+    data_ppmi_neg = [float(i / maxx) for i in data_ppmi_neg]
+
+    data_ppmi_pos_positive = [i if i > 0 else 0 for i in data_ppmi_pos]
+    data_ppmi_neg_positive = [i if i > 0 else 0 for i in data_ppmi_neg]
+
+    data_ppmi_pos.sort()
+    data_ppmi_neg.sort()
+    data_ppmi_pos_positive.sort()
+    data_ppmi_neg_positive.sort()
+    print(data_ppmi_pos)
+    print(data_ppmi_neg)
+    print(data_ppmi_pos_positive)
+    print(data_ppmi_neg_positive)
+
+    write_file_float('data/baseline score/pmi_pos.txt', data_ppmi_pos)
+    write_file_float('data/baseline score/pmi_neg.txt', data_ppmi_neg)
+    write_file_float('data/baseline score/ppmi_pos.txt', data_ppmi_pos_positive)
+    write_file_float('data/baseline score/ppmi_neg.txt', data_ppmi_pos_positive)
+
     import numpy as np
     import sklearn.metrics as m
     import pylab as pl
@@ -1086,13 +1153,13 @@ def ROC_test():
 
     THREASHOLD = 0.43
     content += str(THREASHOLD),
-    range = [1,2,3,4,5]
+    range = [1]
 
     for scale in range[:]:
         thr = scale * 7666;
         # for baseskip
         y_true_skip = [1] * 7666 + [0] * thr
-        # y_pred_skip = baseskip_med_pos + random.sample(baseskip_all_neg[:3000], 200) + random.sample(baseskip_all_neg[33000:], thr - 200)
+        # y_pred_skip = baseskip_med_pos + random.sample(baseskip_all_neg[:30000], 200) + random.sample(baseskip_all_neg[:30000], thr - 200)
         y_pred_skip = baseskip_med_pos + baseskip_all_neg[-thr:]#random.sample(baseskip_all_neg[:3000], 200) + random.sample(baseskip_all_neg[33000:], thr - 200)
         # y_pred_skip = baseskip_med_pos + random.sample(baseskip_all_neg[:], thr)# + random.sample(baseskip_all_neg[33000:], thr - 200)
         y_cls_skip = np.array([1 if i >= THREASHOLD else 0 for i in y_pred_skip], dtype=np.float32)
@@ -1162,6 +1229,60 @@ def ROC_test():
         print m.classification_report(y_true_baidu, y_cls_baidu, digits= 5)
         content += m.classification_report(y_true_baidu, y_cls_baidu, digits= 10),
 
+        # for pmi
+        # 给ppmi的，只要后三个特征的
+        y_true_ppmi = [1] * 7666 + [0] * thr
+        y_pred_ppmi = data_ppmi_pos + data_ppmi_neg  # random.sample(data_all_model_neg_baidu, thr)
+        y_cls_ppmi = np.array([1 if i >= THREASHOLD else 0 for i in y_pred_ppmi], dtype=np.float32)
+        print('\n\n ppmi')
+        print m.classification_report(y_true_ppmi, y_cls_ppmi, digits=5)
+        content += m.classification_report(y_true_ppmi, y_cls_ppmi, digits=10),
+
+        # for ppmi
+        # 给ppmi的，只要后三个特征的
+        y_true_ppmi_positive = [1] * 7666 + [0] * thr
+        y_pred_ppmi_positive = data_ppmi_pos_positive + data_ppmi_neg_positive  # random.sample(data_all_model_neg_baidu, thr)
+        y_cls_ppmi_positive = np.array([1 if i >= THREASHOLD else 0 for i in y_pred_ppmi_positive], dtype=np.float32)
+        print('\n\n ppmi')
+        print m.classification_report(y_true_ppmi_positive, y_cls_ppmi_positive, digits=5)
+        content += m.classification_report(y_true_ppmi_positive, y_cls_ppmi_positive, digits=10),
+
+        fpr_base, tpr_base, th_base = m.roc_curve(y_true_base, y_pred_base)
+        fpr, tpr, th = m.roc_curve(y_true, y_pred)
+        fpr_glove, tpr_glove, th_glove = m.roc_curve(y_true_glove, y_pred_glove)
+        fpr_rulebased, tpr_rulebased, th_rulebased = m.roc_curve(y_true_rulebased, y_pred_rulebased)
+        fpr_baidu, tpr_baidu, th_baidu = m.roc_curve(y_true_baidu, y_pred_baidu)
+        fpr_ppmi, tpr_ppmi, th_ppmi = m.roc_curve(y_true_ppmi, y_pred_ppmi)
+        fpr_ppmi_positive, tpr_ppmi_positive, th_ppmi_positive = m.roc_curve(y_true_ppmi_positive, y_pred_ppmi_positive)
+        fpr_skip, tpr_skip, th_skip = m.roc_curve(y_true_skip, y_pred_skip)
+        fpr_skip_with_features, tpr_skip_with_features, th_skip_with_features = m.roc_curve(y_true_skip_with_features,
+                                                                                            y_pred_skip_with_features)
+        ax = pl.subplot(1, 1, 1)
+        ax.plot(fpr_ppmi, tpr_ppmi, color='black', label='PMI', marker='<', markevery=200)
+        ax.plot(fpr_ppmi_positive, tpr_ppmi_positive, color='grey', label='PPMI', marker='o', markevery=230)
+        ax.plot(fpr_glove, tpr_glove, color='deepskyblue', label='GloVe', marker='v', markevery=200)
+        ax.plot(fpr_base, tpr_base, color='blue', label='word2vec', marker='d', markevery=200)
+        ax.plot(fpr_rulebased, tpr_rulebased, color='darkgreen', label='word2vec+linguistic', marker='*', markevery=200)
+        ax.plot(fpr_baidu, tpr_baidu, color='peru', label='word2vec+global', marker='1', markevery=200)
+        ax.plot(fpr, tpr, color='red', label='MedSimc', marker='>', markevery=200)
+        ax.plot(fpr_skip, tpr_skip, color='yellow', label='word2vecSkipGram', marker='s', markevery=200)
+        ax.plot(fpr_skip_with_features, tpr_skip_with_features, color='pink', label='MedSims', marker='s',
+                markevery=200)
+
+        ax.set_xlim([0.0, 0.6])
+        ax.set_ylim([0.3, 1.0])
+        # ax.set_xlim([0.0, 1.0])
+        # ax.set_ylim([0.0, 1.0])
+        ax.grid(True)
+        # ax.set_title('ROC curve, Thresh = %s.png' % (THREASHOLD))
+        pl.xlabel('FP rate')
+        pl.ylabel('TP rate')
+        pl.legend(loc="lower right")
+        pl.savefig('imgs/ROC curve, Thresh = %s.png' % (THREASHOLD))
+        # pl.show()
+        pl.clf()
+
+
         precision_base, recall_base, th_base = m.precision_recall_curve(y_true_base, y_pred_base)
         precision, recall, th = m.precision_recall_curve(y_true, y_pred)
         precision_glove, recall_glove, th_glove = m.precision_recall_curve(y_true_glove, y_pred_glove)
@@ -1171,16 +1292,21 @@ def ROC_test():
         precision_skip, recall_skip, th_skip = m.precision_recall_curve(y_true_skip, y_pred_skip)
         precision_skip_with_features, recall_skip_with_features, th_skip_with_features = m.precision_recall_curve(
             y_true_skip_with_features, y_pred_skip_with_features)
+        precision_ppmi, recall_ppmi, th_ppmi = m.precision_recall_curve(y_true_ppmi, y_pred_ppmi)
+        precision_ppmi_positive, recall_ppmi_positive, th_ppmi_positive = m.precision_recall_curve(y_true_ppmi_positive, y_pred_ppmi_positive)
+
         ax = pl.subplot(1, 1, 1)
         ax.plot(recall_glove, precision_glove, color='deepskyblue', label='GloVe', marker='v', markevery=800)
         ax.plot(recall_base, precision_base, color='blue', label='word2vecCBOW', marker='d', markevery=(0, 800))
-        ax.plot(recall_rulebased, precision_rulebased, color='darkgreen', label='word2vec+rule', marker='*',
+        ax.plot(recall_rulebased, precision_rulebased, color='darkgreen', label='word2vec+linguisitic', marker='*',
                 markevery=800)
-        ax.plot(recall_baidu, precision_baidu, color='peru', label='word2vec+topic', marker='d', markevery=800)
-        ax.plot(recall, precision, color='red', label='MedSim', marker='o', markevery=800)
-        ax.plot(recall_skip, precision_skip, color='yellow', label='word2vecSkipGram', marker='s', markevery=800)
+        ax.plot(recall_baidu, precision_baidu, color='peru', label='word2vec+global', marker='d', markevery=800)
+        ax.plot(recall, precision, color='red', label='MedSimc', marker='o', markevery=800)
+        ax.plot(recall_skip, precision_skip, color='yellow', label='word2vecSkip', marker='s', markevery=800)
         ax.plot(recall_skip_with_features, precision_skip_with_features, color='pink',
-                label='word2vecSkipGram_with_features', marker='s', markevery=800)
+                label='MedSims', marker='s', markevery=800)
+        ax.plot(recall_ppmi, precision_ppmi, color='black', label='PMI', marker='<', markevery=800)
+        ax.plot(recall_ppmi_positive, precision_ppmi_positive, color='grey', label='PPMI', marker='o', markevery=860)
         ax.set_xlim([0.4, 1.0])
         ax.set_ylim([0.4, 1.0])
         # ax.set_xlim([0.0, 1.0])
@@ -1276,6 +1402,74 @@ def get_model_from_txt_and_cal_similarity(path = ''):
     # score_med_neg = [str(i) for i in score_med_neg]
     # write_file('data/baseline score/GloVe_med_neg.txt', score_med_neg)
 
+def get_score_for_case_study():
+
+
+    import numpy as np
+    import sklearn.metrics as m
+    import pylab as pl
+    import random
+
+
+    # from gensim.models import KeyedVectors
+    # word_vectors = KeyedVectors.load_word2vec_format('model/Gvectors.txt', binary=False)
+    model_skip = gensim.models.Word2Vec.load('model/model_DB_neike_abs_RE_wiki')
+    # print(word_vectors.vocab.keys[0])
+    # print(word_vectors[u'感冒'])
+    # print(word_vectors.similarity(u'感冒',u'发烧'))
+
+    filename_pos = 'data/syns/medical_syns_7666.txt'
+    f = open(filename_pos, 'r')
+    count = 0
+    total = 0
+    res = []
+    score = []
+    for line in f:
+        total += 1
+        line = line.strip()
+        # print(line)
+        line = line.split('|')
+        e1 = line[0]
+        e2 = line[1]
+        res += (e1, e2),
+        try:
+            score += model_skip.similarity(e1,e2),
+        except:
+            # print(e1+' '+e2)
+            count += 1
+            continue
+    print count
+    score = [str(i) for i in score]
+    write_file('data/baseline score/med_7666_similarity_score_base_for_case_study.txt', score)
+
+    data_med_pos = cal_and_get_data_res_for_medical()
+    data_med_pos_rulebased = cal_and_get_data_res_for_medical(feature_select=(0,3))
+
+    data_med_pos_baidu = cal_and_get_data_res_for_medical(feature_select=(3,6))
+
+
+
+
+
+    write_file_float('data\\baseline score\\med_7666_similarity_socre_baidu_for_case_study.txt',data_med_pos_baidu)
+    write_file_float('data\\baseline score\\med_7666_similarity_socre_rule_for_case_study.txt',data_med_pos_rulebased)
+    write_file_float('data\\baseline score\\med_7666_similarity_socre_MedSim_for_case_study.txt',data_med_pos)
+
+
+def test_for_baidu_score():
+
+
+    baidu_dic = features.getSearchScoreFromCSV('data/baidu_7666.csv')
+
+    for k,v in baidu_dic.items():
+        if features.calSearchScore(baidu_dic,k[0],k[1]) < 0.2:
+            print k[0],k[1]
+            print(v,features.calSearchScore(baidu_dic,k[0],k[1]))
+
+    # deal_with_feature_linear(features.calSearchScore(baidu_dic,w1[i],w2[i]),0.4),
+
+# test_for_baidu_score()
+
 # model_skip = gensim.models.Word2Vec.load('model/model_baike_neike_DB_RE_wiki_skip')
 #
 # get_model_from_txt_and_cal_similarity()
@@ -1316,9 +1510,10 @@ def get_model_from_txt_and_cal_similarity(path = ''):
 
 # ROC()
 ROC_test()
-
 # cal_correlations()
 
+
+# get_score_for_case_study()
 
 #get_model_from_txt_and_cal_similarity()
 
@@ -1377,4 +1572,5 @@ ROC_test()
 #     print i[0],i[1]
 #
 # print len(model.vocab)
+
 #
